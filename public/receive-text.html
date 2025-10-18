@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Receive Text — Instant Share</title>
+    <link rel="stylesheet" href="index.css">
+    <script>
+      (function(){
+        try{
+          const l = document.querySelector('link[rel="stylesheet"][href*="index.css"]');
+          if(l) l.href = l.href + (l.href.includes('?') ? '&' : '?') + 'v=' + Date.now();
+        }catch(e){}
+      })();
+    </script>
+    <script src="page-transitions.js"></script>
+  </head>
+  <body>
+    <div class="topbar">
+      <div class="brand"><div class="logo">FT</div><div class="title">Instant Share</div></div>
+      <nav class="controls"><a href="index.html" class="btn ghost">Home</a><a href="upload-text.html" class="btn ghost">Share Text</a><a href="upload-file.html" class="btn ghost">Upload File</a></nav>
+    </div>
+
+    <div class="main-content"><div class="container">
+      <div class="card">
+        <label for="codeInput" style="font-weight:600">Enter code</label>
+        <div style="height:8px"></div>
+        <input id="codeInput" type="text" placeholder="e.g. 4F7G9B" aria-label="code">
+        <div style="height:14px"></div>
+        <div style="display:flex;gap:10px">
+          <button id="fetchBtn" class="btn">Get Text</button>
+          <button id="clearBtn" class="btn ghost">Clear</button>
+        </div>
+
+        <div id="result" class="result" aria-live="polite"></div>
+      </div>
+    </div>
+
+  <div class="page-bg" aria-hidden="true"><div class="bg-files"></div></div>
+
+  <script>
+      const fetchBtn = document.getElementById('fetchBtn');
+      const codeInput = document.getElementById('codeInput');
+      const result = document.getElementById('result');
+      const clearBtn = document.getElementById('clearBtn');
+
+      clearBtn.addEventListener('click', ()=>{ codeInput.value=''; result.innerHTML=''; });
+
+      fetchBtn.addEventListener('click', async () => {
+        const code = codeInput.value.trim().toUpperCase();
+        if (!code) return showToast('Enter a code first!');
+        result.innerHTML = 'Loading...';
+        try {
+          const url = window.location.origin + `/receive/${code}`;
+          const resp = await fetch(url, { cache: 'no-store' });
+          let data;
+          try { data = await resp.json(); } catch(e) { data = null; console.error('Invalid JSON from /receive', e); }
+          if (resp.ok && data) {
+            if (data.text) {
+              result.innerHTML = `<pre style=\"white-space:pre-wrap\">${data.text}</pre><p class=\"info\">Expires in: <strong id=\"countdown\">--:--</strong></p>`;
+              startCountdown(data.upload_time, document.getElementById('countdown'));
+            } else {
+              result.innerHTML = `<p>❌ No text found for this code.</p>`;
+            }
+          } else {
+            result.innerHTML = `<p>❌ ${data && data.message ? data.message : 'Not found or expired.'}</p>`;
+          }
+        } catch (err) {
+          console.error('Fetch error', err);
+          result.innerHTML = `<p>Network error: ${err.message || 'Could not reach server'}</p>`;
+        }
+      });
+
+      // Auto-fetch if ?code= present
+      (function autoFetchFromQuery(){
+        const params = new URLSearchParams(window.location.search);
+        const c = params.get('code');
+        if(c){ codeInput.value = c.toUpperCase(); fetchBtn.click(); }
+      })();
+
+      function parseServerTime(s){
+        if(!s) return Date.now();
+        const parts = s.split(' ');
+        const d = parts[0].split('-').map(Number);
+        const t = parts[1].split(':').map(Number);
+        return new Date(d[0], d[1]-1, d[2], t[0], t[1], t[2]).getTime();
+      }
+
+      function startCountdown(uploadTimeStr, el){
+        if(!el) return;
+        const serverTs = parseServerTime(uploadTimeStr);
+        const expiry = serverTs + 15 * 60 * 1000;
+        let interval = null;
+        function update(){
+          const now = Date.now();
+          let diff = expiry - now;
+          if(diff <= 0){ el.textContent = '00:00'; if(interval) clearInterval(interval); return; }
+          const mins = Math.floor(diff/60000).toString().padStart(2,'0');
+          const secs = Math.floor((diff%60000)/1000).toString().padStart(2,'0');
+          el.textContent = `${mins}:${secs}`;
+        }
+        update();
+        interval = setInterval(update, 1000);
+      }
+
+      function showToast(msg, timeout = 2000){
+        let t = document.getElementById('toast');
+        if(!t){ t = document.createElement('div'); t.id='toast'; t.className='toast'; document.body.appendChild(t); }
+        t.textContent = msg; t.classList.add('show'); clearTimeout(t._hide);
+        t._hide = setTimeout(()=>{ t.classList.remove('show'); }, timeout);
+      }
+    </script>
+    <div id="toast" class="toast" aria-live="polite"></div>
+  </body>
+</html>

@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Upload File — Instant Share</title>
+    <link rel="stylesheet" href="index.css">
+    <script>
+      (function(){
+        try{
+          const l = document.querySelector('link[rel="stylesheet"][href*="index.css"]');
+          if(l) l.href = l.href + (l.href.includes('?') ? '&' : '?') + 'v=' + Date.now();
+        }catch(e){}
+      })();
+    </script>
+    <script src="page-transitions.js"></script>
+  </head>
+  <body>
+    <div class="topbar">
+      <div class="brand"><div class="logo">FT</div><div class="title">Instant Share</div></div>
+      <nav class="controls"><a href="index.html" class="btn ghost">Home</a><a href="upload-text.html" class="btn ghost">Share Text</a><a href="receive-file.html" class="btn">Receive File</a></nav>
+    </div>
+
+    <div class="main-content"><div class="container">
+      <div class="card">
+        <h2 style="margin-top:0">Upload a file</h2>
+        <form id="fileForm" enctype="multipart/form-data">
+          <label class="upload-area" for="fileInput">
+            <div style="font-size:18px;font-weight:600">Click or drag a file here</div>
+            <p class="info">Files will be automatically removed after 10 minutes.</p>
+            <input id="fileInput" class="file-input" type="file" name="file" required>
+          </label>
+          <div style="display:flex;gap:10px;margin-top:14px">
+            <button type="submit" class="btn">Upload File</button>
+            <button type="button" id="fileClear" class="btn ghost">Clear</button>
+          </div>
+        </form>
+        <div id="fileResult" class="result" aria-live="polite"></div>
+      </div>
+    </div>
+
+  <div class="page-bg" aria-hidden="true"><div class="bg-files"></div></div>
+
+  <script>
+      const form = document.getElementById('fileForm');
+      const fileInput = document.getElementById('fileInput');
+      const result = document.getElementById('fileResult');
+      const clearBtn = document.getElementById('fileClear');
+      const uploadArea = document.querySelector('.upload-area');
+
+      clearBtn.addEventListener('click', ()=>{fileInput.value=''; result.innerHTML='';});
+
+      // helper: robust copy fallback (same approach as used for text share)
+      async function copyToClipboard(text){
+        if(window.navigator && navigator.clipboard && navigator.clipboard.writeText){
+          try{ await navigator.clipboard.writeText(text); return true; } catch(e){ }
+        }
+        try{
+          const ta = document.createElement('textarea'); ta.value = text;
+          ta.style.position = 'fixed'; ta.style.left = '-9999px'; ta.style.top = '0';
+          document.body.appendChild(ta); ta.focus(); ta.select();
+          const ok = document.execCommand('copy'); document.body.removeChild(ta); return !!ok;
+        }catch(e){ return false; }
+      }
+
+      form.addEventListener('submit', async (e)=>{
+        e.preventDefault();
+        if(!fileInput.files.length){ result.innerHTML='Please choose a file'; return; }
+        const fd = new FormData(); fd.append('file', fileInput.files[0]);
+
+        // show green uploading indicator
+        const uploadingEl = document.createElement('div'); uploadingEl.className='uploading'; uploadingEl.innerHTML = '<div class="dot"></div><div class="label">Uploading...</div>';
+        result.innerHTML = '';
+        result.appendChild(uploadingEl);
+        uploadArea.classList.add('uploading-active');
+
+        try{
+          const resp = await fetch('/upload', {method:'POST', body: fd});
+          let data;
+          try { data = await resp.json(); } catch(e) { data = null; }
+          uploadArea.classList.remove('uploading-active');
+          if(resp.ok && data) {
+            const code = data.code;
+            const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+            result.innerHTML = `
+              <p class="success">✅ Uploaded.</p>
+              <p>Code: <strong id="shareCode">${code}</strong> <button id="copyBtn" class="btn ghost" style="padding:6px 8px">Copy</button></p>
+              <p class="info">Expires at: <strong id="expiresAt">${expiresAt.toLocaleString()}</strong></p>
+              <div id="toast" class="toast" aria-live="polite"></div>
+              <p><a href="receive-file.html?code=${code}" class="btn">Open receive page</a></p>
+            `;
+            document.getElementById('copyBtn').addEventListener('click', async () => {
+              const ok = await copyToClipboard(code);
+              if(ok) showToast('Code copied'); else showToast('Copy failed — select and press Ctrl+C');
+            });
+          } else {
+            result.innerHTML = `<p>❌ ${data && data.message ? data.message : 'Upload failed.'}</p>`;
+          }
+        }catch(err){ uploadArea.classList.remove('uploading-active'); result.innerHTML='Network error'; }
+      });
+
+      function showToast(msg, timeout = 2000){
+        let t = document.getElementById('toast');
+        if(!t){ t = document.createElement('div'); t.id='toast'; t.className='toast'; document.body.appendChild(t); }
+        t.textContent = msg; t.classList.add('show'); clearTimeout(t._hide);
+        t._hide = setTimeout(()=>{ t.classList.remove('show'); }, timeout);
+      }
+    </script>
+  </body>
+</html>

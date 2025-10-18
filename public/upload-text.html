@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Share Text — Instant Share</title>
+    <link rel="stylesheet" href="index.css">
+    <script>
+      (function(){
+        try{
+          const l = document.querySelector('link[rel="stylesheet"][href*="index.css"]');
+          if(l) l.href = l.href + (l.href.includes('?') ? '&' : '?') + 'v=' + Date.now();
+        }catch(e){}
+      })();
+    </script>
+    <script src="page-transitions.js"></script>
+  </head>
+  <body>
+    <div class="topbar">
+      <div class="brand"><div class="logo">FT</div><div class="title">Instant Share</div></div>
+      <nav class="controls"><a href="index.html" class="btn ghost">Home</a><a href="upload-file.html" class="btn ghost">Upload File</a><a href="receive-text.html" class="btn">Receive Text</a></nav>
+    </div>
+
+    <div class="main-content"><div class="container">
+      <div class="card">
+        <h2 style="margin-top:0">Share text</h2>
+        <textarea id="shareText" rows="8" style="width:100%;padding:10px;border-radius:8px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.03);color:inherit" placeholder="Paste your message here..."></textarea>
+        <div style="display:flex;gap:10px;margin-top:14px">
+          <button id="shareBtn" class="btn">Share Text</button>
+          <button id="textClear" class="btn ghost">Clear</button>
+        </div>
+        <div id="textResult" class="result"></div>
+      </div>
+    </div>
+
+  <div class="page-bg" aria-hidden="true"><div class="bg-files"></div></div>
+
+  <script>
+      const shareBtn = document.getElementById('shareBtn');
+      const shareText = document.getElementById('shareText');
+      const textResult = document.getElementById('textResult');
+      const clearBtn = document.getElementById('textClear');
+
+      clearBtn.addEventListener('click', ()=>{ shareText.value=''; textResult.innerHTML=''; });
+
+      shareBtn.addEventListener('click', async ()=>{
+        const text = shareText.value.trim();
+        if(!text) { textResult.innerHTML = '<span style="color:#ffb4b4">Enter text to share</span>'; return; }
+        textResult.innerHTML = 'Sharing...';
+        try{
+          const body = new URLSearchParams(); body.append('text', text);
+          const resp = await fetch('/share-text', { method: 'POST', body: body, headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
+          let data;
+          try { data = await resp.json(); } catch(e) { data = null; }
+          if(resp.ok && data) {
+            const code = data.code;
+            const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+            textResult.innerHTML = `
+              <p>✅ Shared.</p>
+              <p>Code: <strong id="shareCode">${code}</strong> <button id="copyBtn" class="btn ghost" style="padding:6px 8px">Copy</button></p>
+              <p class="info">Expires at: <strong id="expiresAt">${expiresAt.toLocaleString()}</strong></p>
+              <p><a href="receive-text.html?code=${code}" class="btn">Open receive page</a></p>
+              <div id="toast" class="toast" aria-live="polite"></div>
+            `;
+                  // robust copy helper: prefer navigator.clipboard but fall back to a hidden textarea + execCommand
+                  async function copyToClipboard(text){
+                    if(window.navigator && navigator.clipboard && navigator.clipboard.writeText){
+                      try{ await navigator.clipboard.writeText(text); return true; } catch(e){ /* fallthrough to fallback */ }
+                    }
+                    // fallback for insecure contexts or older browsers
+                    try{
+                      const ta = document.createElement('textarea');
+                      ta.value = text;
+                      // avoid page jump
+                      ta.style.position = 'fixed'; ta.style.left = '-9999px'; ta.style.top = '0';
+                      document.body.appendChild(ta);
+                      ta.focus(); ta.select();
+                      const ok = document.execCommand('copy');
+                      document.body.removeChild(ta);
+                      return !!ok;
+                    }catch(e){ return false; }
+                  }
+
+                  document.getElementById('copyBtn').addEventListener('click', async ()=>{
+                    const ok = await copyToClipboard(code);
+                    if(ok) showToast('Code copied');
+                    else {
+                      showToast('Copy failed — select code and press Ctrl+C');
+                    }
+                  });
+          } else textResult.innerHTML = `<p>❌ ${data && data.message ? data.message : 'Share failed.'}</p>`;
+        }catch(err){ textResult.innerHTML = 'Network error'; }
+      });
+
+      function showToast(msg, timeout = 2000){
+        let t = document.getElementById('toast');
+        if(!t){ t = document.createElement('div'); t.id='toast'; t.className='toast'; document.body.appendChild(t); }
+        t.textContent = msg; t.classList.add('show'); clearTimeout(t._hide);
+        t._hide = setTimeout(()=>{ t.classList.remove('show'); }, timeout);
+      }
+    </script>
+  </body>
+</html>

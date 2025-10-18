@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>About — Instant Share</title>
+    <link rel="stylesheet" href="index.css">
+    <script>
+      (function(){
+        try{
+          const l = document.querySelector('link[rel="stylesheet"][href*="index.css"]');
+          if(l) l.href = l.href + (l.href.includes('?') ? '&' : '?') + 'v=' + Date.now();
+        }catch(e){}
+      })();
+    </script>
+    <script src="page-transitions.js"></script>
+  </head>
+  <body>
+    <div class="topbar">
+      <div class="brand"><div class="logo">FT</div><div class="title">Instant Share</div></div>
+      <nav class="controls"><a href="index.html" class="btn ghost">Home</a><a href="upload-file.html" class="btn ghost">Upload File</a><a href="receive-file.html" class="btn ghost">Receive File</a><a href="upload-text.html" class="btn ghost">Share Text</a><a href="receive-text.html" class="btn ghost">Receive Text</a></nav>
+    </div>
+    <div class="main-content">
+      <div class="container">
+        <div class="card" style="max-width:600px;margin:auto">
+          <h2>About Instant Share</h2>
+          <p>Instant Share lets you quickly transfer files or text between devices. Upload a file or share text, get a code, and use it to receive the content on another device. All data is deleted after 15 minutes for privacy and security.</p>
+          <ul>
+            <li>Files and text are never stored longer than 15 minutes.</li>
+            <li>No account or login required.</li>
+            <li>Works on desktop and mobile browsers.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

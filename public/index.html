@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>File Transfer System</title>
+  <link rel="stylesheet" href="index.css">
+  <script>
+    (function(){
+      try{
+        const l = document.querySelector('link[rel="stylesheet"][href*="index.css"]');
+        if(l) l.href = l.href + (l.href.includes('?') ? '&' : '?') + 'v=' + Date.now();
+      }catch(e){}
+    })();
+  </script>
+  <script src="page-transitions.js"></script>
+</head>
+<body class="home">
+  <!-- Initial loader -->
+  <div class="initial-loader" id="initialLoader">
+    <div style="text-align: center;">
+      <div class="spinner"></div>
+      <div class="text">Loading Instant Share...</div>
+    </div>
+  </div>
+  
+  <center>
+    <div class="topbar">
+      <div class="brand"><div class="logo">FT</div><div class="title">Instant Share</div></div>
+      <nav class="controls">
+        <a href="upload-file.html" class="btn">Upload File</a>
+        <a href="receive-file.html" class="btn ghost">Receive File</a>
+        <a href="upload-text.html" class="btn ghost">Share Text</a>
+        <a href="receive-text.html" class="btn ghost">Receive Text</a>
+        <a href="about.html" class="btn ghost">About</a>
+      </nav>
+    </div>
+    <div class="main-content">
+      <div class="container">
+  <div class="card hero">
+          <h1 style="margin-top:0">Instant Share</h1>
+          <p>Share or transfer files and text instantly.<br>Files and text expire after 15 minutes.</p>
+          <div style="height:18px"></div>
+          <div class="actions">
+            <a href="upload-file.html" class="btn">Upload File</a>
+            <a href="upload-text.html" class="btn ghost">Share Text</a>
+            <a href="receive-file.html" class="btn ghost">Receive File</a>
+            <a href="receive-text.html" class="btn ghost">Receive Text</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </center>
+
+  <div class="page-bg" aria-hidden="true">
+    <div class="bg-files"></div>
+  </div>
+</body>
+</html>
